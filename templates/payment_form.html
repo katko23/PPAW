@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <h1>Payment Form</h1>
+
+    <!-- Display flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <div class="form-container">
+        <form method="POST" action="{{ url_for('submit_payment') }}">
+            <label for="user_id">User ID:</label>
+            <input type="text" name="user_id" id="user_id" required>
+
+            <label for="subscription_id">Subscription:</label>
+            <select name="subscription_id" id="subscription_id">
+                {% for subscription in subscriptions %}
+                    <option value="{{ subscription.subscription_id }}">{{ subscription.name }} - ${{ subscription.price }} </option>
+                {% endfor %}
+            </select>
+
+            <label for="amount">Amount:</label>
+            <input type="text" name="amount" id="amount" required>
+
+            <button type="submit">Submit Payment</button>
+        </form>
+    </div>
+
+</body>
+</html>

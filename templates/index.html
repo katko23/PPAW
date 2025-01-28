@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista Utilizatori și Plăți</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+</head>
+<body>
+    <h1>Lista Utilizatori</h1>
+    <table id="users-table">
+        <thead>
+            <tr>
+                <th>ID Utilizator</th>
+                <th>Nume</th>
+                <th>Email</th>
+                <th>Data Creării</th>
+                <th>Acțiuni</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h1>Lista Plăți</h1>
+    <table id="payments-table">
+        <thead>
+            <tr>
+                <th>ID Plată</th>
+                <th>ID Utilizator</th>
+                <th>ID Abonament</th>
+                <th>Sumă</th>
+                <th>Data Plății</th>
+                <th>Acțiuni</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // Functie pentru a încărca utilizatorii din API
+        async function loadUsers() {
+            const response = await fetch('/api/users');
+            const users = await response.json();
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = ''; // Curăță tabelul înainte de a-l popula
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.user_id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${user.created_at}</td>
+                    <td>
+                        <button onclick="deleteUser(${user.user_id})">Șterge</button>
+                        <button onclick="editUser(${user.user_id})">Editează</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Functie pentru a încărca plățile din API
+        async function loadPayments() {
+            const response = await fetch('/api/payments');
+            const payments = await response.json();
+            const tbody = document.querySelector('#payments-table tbody');
+            tbody.innerHTML = ''; // Curăță tabelul înainte de a-l popula
+
+            payments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${payment.payment_id}</td>
+                    <td>${payment.user_id}</td>
+                    <td>${payment.subscription_id}</td>
+                    <td>${payment.amount}</td>
+                    <td>${payment.payment_date}</td>
+                    <td>
+                        <button onclick="deletePayment(${payment.payment_id})">Șterge</button>
+                        <button onclick="editPayment(${payment.payment_id})">Editează</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Ștergerea unui utilizator
+        async function deleteUser(userId) {
+            if (confirm("Sigur doriți să ștergeți acest utilizator?")) {
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    loadUsers(); // Reîncarcă utilizatorii
+                }
+            }
+        }
+
+        // Ștergerea unei plăți
+        async function deletePayment(paymentId) {
+            if (confirm("Sigur doriți să ștergeți această plată?")) {
+                const response = await fetch(`/api/payments/${paymentId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    loadPayments(); // Reîncarcă plățile
+                }
+            }
+        }
+
+        // Încărcarea utilizatorilor și plăților la încărcarea paginii
+        window.onload = () => {
+            loadUsers();
+            loadPayments();
+        };
+    </script>
+</body>
+</html>
