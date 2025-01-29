@@ -89,6 +89,10 @@ button:hover {
     background-color: #e67e22;
 }
 
+.username, .password_hash, .email{
+    text-decoration-color: #2ecc71;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 600px) {
     form {

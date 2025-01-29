@@ -25,6 +25,16 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(64), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
+    is_deleted = db.Column(db.Boolean, default=False)  # Soft delete flag
+
+class Payment(db.Model):
+    __tablename__ = 'payments'
+    payment_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.subscription_id'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    payment_date = db.Column(db.DateTime, default=db.func.now())
+    is_deleted = db.Column(db.Boolean, default=False)  # Soft delete flag
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
@@ -41,14 +51,6 @@ class File(db.Model):
     file_name = db.Column(db.String(255), nullable=False)
     file_size_mb = db.Column(db.Numeric(10, 2), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=db.func.now())
-
-class Payment(db.Model):
-    __tablename__ = 'payments'
-    payment_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.subscription_id'), nullable=False)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
-    payment_date = db.Column(db.DateTime, default=db.func.now())
 
 # Function to serialize datetime objects into strings
 def custom_serializer(obj):
@@ -74,32 +76,30 @@ def add_user_page():
 def add_payment_page():
     return render_template('payment_form.html')  # The page for adding a new payment
 
-# Fetch all users
+# Fetch all users (excluding soft deleted ones)
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    cached_users = cache.get('users')
-    if cached_users:
-        try:
-            # Load cached data and convert back datetime strings to datetime objects
-            users_data = json.loads(cached_users)
-            users_data = [custom_deserializer(user) for user in users_data]
-            return jsonify(users_data)  # Return cached data
-        except json.JSONDecodeError:
-            # Handle JSON decoding error (this shouldn't happen if we're using proper JSON)
-            return jsonify({"error": "Failed to decode cached data"}), 500
+    users = User.query.filter_by(is_deleted=False).all()
+    user_list = [{
+        'user_id': u.user_id,
+        'username': u.username,
+        'email': u.email,
+        'created_at': u.created_at.isoformat()
+    } for u in users]
+    return jsonify(user_list)
 
+# Fetch all users (excluding soft deleted ones)
+@app.route('/api/users/all', methods=['GET'])
+def get_users_all():
     users = User.query.all()
     user_list = [{
         'user_id': u.user_id,
         'username': u.username,
         'email': u.email,
-        'created_at': u.created_at  # This will be a datetime object
+        'created_at': u.created_at.isoformat(),
+        'is_deleted': u.is_deleted
     } for u in users]
-
-    # Cache the result (convert datetime objects to strings)
-    cache.set('users', json.dumps(user_list, default=custom_serializer))  # Use custom_serializer to handle datetime objects
     return jsonify(user_list)
-
 
 # Add a new user
 @app.route('/api/users', methods=['POST'])
@@ -181,24 +181,30 @@ def add_payment():
     return jsonify({'message': 'Payment added successfully'}), 201
 
 
-# Fetch all payments
+# Fetch all payments (excluding soft deleted ones)
 @app.route('/api/payments', methods=['GET'])
 def get_payments():
-    cached_payments = cache.get('payments')
-    if cached_payments:
-        return jsonify(eval(cached_payments))
+    payments = Payment.query.filter_by(is_deleted=False).all()
+    payment_list = [{
+        'payment_id': p.payment_id,
+        'user_id': p.user_id,
+        'subscription_id': p.subscription_id,
+        'amount': float(p.amount),
+        'payment_date': p.payment_date.isoformat()
+    } for p in payments]
+    return jsonify(payment_list)
 
+# Fetch all payments (excluding soft deleted ones)
+@app.route('/api/payments/all', methods=['GET'])
+def get_payments_all():
     payments = Payment.query.all()
     payment_list = [{
         'payment_id': p.payment_id,
         'user_id': p.user_id,
         'subscription_id': p.subscription_id,
         'amount': float(p.amount),
-        'payment_date': p.payment_date.isoformat()  # Serialize datetime to string
+        'payment_date': p.payment_date.isoformat()
     } for p in payments]
-
-    # Cache the result (string representation of the list)
-    cache.set('payments', str(payment_list))
     return jsonify(payment_list)
 
 # Fetch all subscriptions for the form dropdown
@@ -308,35 +314,58 @@ def update_payment(payment_id):
     })
 
 
-# Șterge un utilizator
-@app.route('/api/users/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
+# Soft delete a user
+@app.route('/api/users/<int:user_id>/soft-delete', methods=['PUT'])
+def soft_delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.is_deleted = True
+    db.session.commit()
+    cache.delete('users')
+
+    return jsonify({"message": "User soft deleted successfully"})
+
+# Hard delete a user
+@app.route('/api/users/<int:user_id>/hard-delete', methods=['DELETE'])
+def hard_delete_user(user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
     db.session.delete(user)
     db.session.commit()
-
-    # Clear the cache
     cache.delete('users')
 
-    return jsonify({"message": "User deleted successfully"})
+    return jsonify({"message": "User hard deleted successfully"})
 
-# Șterge o plată
-@app.route('/api/payments/<int:payment_id>', methods=['DELETE'])
-def delete_payment(payment_id):
+# Soft delete a payment
+@app.route('/api/payments/<int:payment_id>/soft-delete', methods=['DELETE'])
+def soft_delete_payment(payment_id):
+    payment = Payment.query.get(payment_id)
+    if not payment:
+        return jsonify({"error": "Payment not found"}), 404
+
+    payment.is_deleted = True
+    db.session.commit()
+    cache.delete('payments')
+
+    return jsonify({"message": "Payment soft deleted successfully"})
+
+# Hard delete a payment
+@app.route('/api/payments/<int:payment_id>/hard-delete', methods=['DELETE'])
+def hard_delete_payment(payment_id):
     payment = Payment.query.get(payment_id)
     if not payment:
         return jsonify({"error": "Payment not found"}), 404
 
     db.session.delete(payment)
     db.session.commit()
-
-    # Clear the cache
     cache.delete('payments')
 
-    return jsonify({"message": "Payment deleted successfully"})
+    return jsonify({"message": "Payment hard deleted successfully"})
+
 
 
 if __name__ == '__main__':
