@@ -8,7 +8,7 @@ api = Blueprint('api', __name__)
 @api.route('/')
 def home(user_service: UserService = inject(UserService)):
     users = user_service.get_all_users()
-    return render_template('index.html', users=users)
+    return render_template('info.html', users=users)
 
 # ✅ User Management Pages
 @api.route('/users/add', methods=['GET', 'POST'])

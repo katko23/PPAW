@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista Utilizatori și Plăți</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+</head>
+<body>
+    <h1>Lista Utilizatori</h1>
+    <table id="users-table">
+        <thead>
+            <tr>
+                <th>ID Utilizator</th>
+                <th>Nume</th>
+                <th>Email</th>
+                <th>Data Creării</th>
+                <th>Acțiuni</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h1>Lista Plăți</h1>
+    <table id="payments-table">
+        <thead>
+            <tr>
+                <th>ID Plată</th>
+                <th>ID Utilizator</th>
+                <th>ID Abonament</th>
+                <th>Sumă</th>
+                <th>Data Plății</th>
+                <th>Acțiuni</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        async function loadUsers() {
+            const response = await fetch('/api/users/all');
+            const users = await response.json();
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.user_id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${user.created_at}</td>
+                    <td>
+                        ${user.is_deleted ?
+                        `<button onclick="restoreUser(${user.user_id})">Restaurează</button>
+                        <button onclick="hardDeleteUser(${user.user_id})">Șterge Permanent</button>` :
+                        `<button onclick="softDeleteUser(${user.user_id})">Șterge</button>
+                        <button onclick="editUser(${user.user_id})">Editează</button>`}
+                    </td>
+                `;
+                if (user.is_deleted) {
+                    row.style.opacity = "0.5";
+                }
+                tbody.appendChild(row);
+            });
+        }
+
+        async function softDeleteUser(userId) {
+            if (confirm("Sigur doriți să dezactivați acest utilizator?")) {
+                await fetch(`/api/users/${userId}/soft-delete`, { method: 'PUT' });
+                loadUsers();
+            }
+        }
+
+        async function restoreUser(userId) {
+            if (confirm("Doriți să reactivați acest utilizator?")) {
+                await fetch(`/api/users/${userId}/restore`, { method: 'PUT' });
+                loadUsers();
+            }
+        }
+
+        async function hardDeleteUser(userId) {
+            if (confirm("Această acțiune este ireversibilă! Sigur doriți să ștergeți acest utilizator permanent?")) {
+                await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+                loadUsers();
+            }
+        }
+
+        async function loadPayments() {
+            const response = await fetch('/api/payments');
+            const payments = await response.json();
+            const tbody = document.querySelector('#payments-table tbody');
+            tbody.innerHTML = '';
+
+            payments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${payment.payment_id}</td>
+                    <td>${payment.user_id}</td>
+                    <td>${payment.subscription_id}</td>
+                    <td>${payment.amount}</td>
+                    <td>${payment.payment_date}</td>
+                    <td>
+                        <button onclick="deletePayment(${payment.payment_id})">Șterge</button>
+                        <button onclick="editPayment(${payment.payment_id})">Editează</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function deletePayment(paymentId) {
+            if (confirm("Sigur doriți să ștergeți această plată?")) {
+                await fetch(`/api/payments/${paymentId}`, { method: 'DELETE' });
+                loadPayments();
+            }
+        }
+
+        window.onload = () => {
+            loadUsers();
+            loadPayments();
+        };
+    </script>
+</body>
+</html>

@@ -29,3 +29,25 @@
 2025-01-29 19:01:11,308 - INFO - 127.0.0.1 - - [29/Jan/2025 19:01:11] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
 2025-01-29 19:01:25,842 - INFO - 127.0.0.1 - - [29/Jan/2025 19:01:25] "[31m[1mPOST /api/files HTTP/1.1[0m" 415 -
 2025-01-29 19:01:50,408 - INFO - 127.0.0.1 - - [29/Jan/2025 19:01:50] "[31m[1mPOST /api/files HTTP/1.1[0m" 415 -
+2025-01-29 19:09:23,647 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-01-29 19:09:23,648 - INFO - [33mPress CTRL+C to quit[0m
+2025-01-29 19:09:35,686 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:35] "GET / HTTP/1.1" 200 -
+2025-01-29 19:09:43,944 - INFO - Get /users/add HTTP/1.1 
+2025-01-29 19:09:43,953 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:43] "GET /users/add HTTP/1.1" 200 -
+2025-01-29 19:09:44,164 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:44] "GET /static/styles.css HTTP/1.1" 200 -
+2025-01-29 19:09:49,043 - INFO - Fetched all active users
+2025-01-29 19:09:49,045 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:49] "GET /api/users HTTP/1.1" 200 -
+2025-01-29 19:09:52,090 - INFO - Fetched all users including inactive
+2025-01-29 19:09:52,097 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:52] "GET /api/users/all HTTP/1.1" 200 -
+2025-01-29 19:09:55,508 - INFO - Get /payments/add HTTP/1.1
+2025-01-29 19:09:55,518 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:55] "GET /payments/add HTTP/1.1" 200 -
+2025-01-29 19:09:55,561 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:55] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+2025-01-29 19:09:58,769 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:58] "GET /upload HTTP/1.1" 200 -
+2025-01-29 19:09:58,806 - INFO - 127.0.0.1 - - [29/Jan/2025 19:09:58] "[36mGET /static/styles.css HTTP/1.1[0m" 304 -
+2025-01-29 19:10:04,738 - INFO - Get /info http/1.1
+2025-01-29 19:10:04,744 - INFO - 127.0.0.1 - - [29/Jan/2025 19:10:04] "GET /info HTTP/1.1" 200 -
+2025-01-29 19:10:04,799 - INFO - 127.0.0.1 - - [29/Jan/2025 19:10:04] "GET /static/index.css HTTP/1.1" 200 -
+2025-01-29 19:10:04,860 - INFO - Fetched all users including inactive
+2025-01-29 19:10:04,862 - INFO - 127.0.0.1 - - [29/Jan/2025 19:10:04] "GET /api/users/all HTTP/1.1" 200 -
+2025-01-29 19:10:06,929 - INFO - 127.0.0.1 - - [29/Jan/2025 19:10:06] "GET /api/payments HTTP/1.1" 200 -

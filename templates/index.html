@@ -1,125 +1,63 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista Utilizatori și Plăți</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .nav-links {
+            list-style: none;
+            padding: 0;
+        }
+        .nav-links li {
+            margin: 15px 0;
+        }
+        .nav-links a {
+            display: block;
+            padding: 10px;
+            background: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+        .nav-links a:hover {
+            background: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Lista Utilizatori</h1>
-    <table id="users-table">
-        <thead>
-            <tr>
-                <th>ID Utilizator</th>
-                <th>Nume</th>
-                <th>Email</th>
-                <th>Data Creării</th>
-                <th>Acțiuni</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <h1>Lista Plăți</h1>
-    <table id="payments-table">
-        <thead>
-            <tr>
-                <th>ID Plată</th>
-                <th>ID Utilizator</th>
-                <th>ID Abonament</th>
-                <th>Sumă</th>
-                <th>Data Plății</th>
-                <th>Acțiuni</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <script>
-        async function loadUsers() {
-            const response = await fetch('/api/users/all');
-            const users = await response.json();
-            const tbody = document.querySelector('#users-table tbody');
-            tbody.innerHTML = '';
-
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${user.user_id}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td>${user.created_at}</td>
-                    <td>
-                        ${user.is_deleted ?
-                        `<button onclick="restoreUser(${user.user_id})">Restaurează</button>
-                        <button onclick="hardDeleteUser(${user.user_id})">Șterge Permanent</button>` :
-                        `<button onclick="softDeleteUser(${user.user_id})">Șterge</button>
-                        <button onclick="editUser(${user.user_id})">Editează</button>`}
-                    </td>
-                `;
-                if (user.is_deleted) {
-                    row.style.opacity = "0.5";
-                }
-                tbody.appendChild(row);
-            });
-        }
-
-        async function softDeleteUser(userId) {
-            if (confirm("Sigur doriți să dezactivați acest utilizator?")) {
-                await fetch(`/api/users/${userId}/soft-delete`, { method: 'PUT' });
-                loadUsers();
-            }
-        }
-
-        async function restoreUser(userId) {
-            if (confirm("Doriți să reactivați acest utilizator?")) {
-                await fetch(`/api/users/${userId}/restore`, { method: 'PUT' });
-                loadUsers();
-            }
-        }
-
-        async function hardDeleteUser(userId) {
-            if (confirm("Această acțiune este ireversibilă! Sigur doriți să ștergeți acest utilizator permanent?")) {
-                await fetch(`/api/users/${userId}`, { method: 'DELETE' });
-                loadUsers();
-            }
-        }
-
-        async function loadPayments() {
-            const response = await fetch('/api/payments');
-            const payments = await response.json();
-            const tbody = document.querySelector('#payments-table tbody');
-            tbody.innerHTML = '';
-
-            payments.forEach(payment => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${payment.payment_id}</td>
-                    <td>${payment.user_id}</td>
-                    <td>${payment.subscription_id}</td>
-                    <td>${payment.amount}</td>
-                    <td>${payment.payment_date}</td>
-                    <td>
-                        <button onclick="deletePayment(${payment.payment_id})">Șterge</button>
-                        <button onclick="editPayment(${payment.payment_id})">Editează</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function deletePayment(paymentId) {
-            if (confirm("Sigur doriți să ștergeți această plată?")) {
-                await fetch(`/api/payments/${paymentId}`, { method: 'DELETE' });
-                loadPayments();
-            }
-        }
-
-        window.onload = () => {
-            loadUsers();
-            loadPayments();
-        };
-    </script>
+    <div class="container">
+        <h1>Welcome to the Dashboard</h1>
+        <ul class="nav-links">
+            <li><a href="/users/add">Add New User</a></li>
+            <li><a href="/api/users">View Active Users (API)</a></li>
+            <li><a href="/api/users/all">View All Users (API)</a></li>
+            <li><a href="/payments/add">Add New Payment</a></li>
+            <li><a href="/api/payments">View Active Payments (API)</a></li>
+            <li><a href="/api/payments/all">View All Payments (API)</a></li>
+            <li><a href="/api/subscriptions">View Subscriptions (API)</a></li>
+            <li><a href="/upload">Upload a File</a></li>
+            <li><a href="/api/files">View Uploaded Files (API)</a></li>
+        </ul>
+    </div>
 </body>
 </html>

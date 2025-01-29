@@ -88,8 +88,12 @@ def custom_deserializer(obj):
 
 @app.route('/')
 def home():
-    logging.info(f"Get / http/1.1")
-    return render_template('index.html')  # The main page where users and payments are listed
+    return render_template('index.html')
+
+@app.route('/info')
+def info():
+    logging.info(f"Get /info http/1.1")
+    return render_template('info.html')  # The main page where users and payments are listed
 
 @app.route('/users/add')
 def add_user_page():

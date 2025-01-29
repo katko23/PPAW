@@ -14,7 +14,7 @@ def index(user_service: UserService = inject(UserService) ):
     users = user_service.get_all_users()
 
     return render_template(
-        "index.html",
+        "info.html",
         query=query,
         limit=limit,
         repositories=repositories,
