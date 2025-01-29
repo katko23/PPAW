@@ -1,21 +1,43 @@
 import json
+import os
 import secrets
+import logging
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 import redis
 from datetime import datetime
 from flask import render_template, redirect, url_for, flash
 
+# Initialize logging
+from werkzeug.utils import secure_filename
+
+logging.basicConfig(
+    filename="serverlogs.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+
 # Initialize Flask app and configuration
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Sininkii2305200@localhost/db_payment'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SECRET_KEY'] = secrets.token_hex(16)  # Set a secure secret key
 
 
 # Initialize database and Redis cache
 db = SQLAlchemy(app)
 cache = redis.Redis(host='localhost', port=6379, db=0)
+
+# Ensure upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Define ORM models
 class User(db.Model):
@@ -66,14 +88,17 @@ def custom_deserializer(obj):
 
 @app.route('/')
 def home():
+    logging.info(f"Get / http/1.1")
     return render_template('index.html')  # The main page where users and payments are listed
 
 @app.route('/users/add')
 def add_user_page():
+    logging.info(f"Get /users/add HTTP/1.1 ")
     return render_template('add_user.html')  # The page for adding a new user
 
 @app.route('/payments/add')
 def add_payment_page():
+    logging.info(f"Get /payments/add HTTP/1.1")
     return render_template('payment_form.html')  # The page for adding a new payment
 
 # Fetch all users (excluding soft deleted ones)
@@ -86,6 +111,7 @@ def get_users():
         'email': u.email,
         'created_at': u.created_at.isoformat()
     } for u in users]
+    logging.info("Fetched all active users")
     return jsonify(user_list)
 
 # Fetch all users (excluding soft deleted ones)
@@ -99,6 +125,7 @@ def get_users_all():
         'created_at': u.created_at.isoformat(),
         'is_deleted': u.is_deleted
     } for u in users]
+    logging.info("Fetched all users including inactive")
     return jsonify(user_list)
 
 # Add a new user
@@ -177,6 +204,7 @@ def add_payment():
     )
     db.session.add(new_payment)
     db.session.commit()
+
     cache.delete('payments')  # Clear the cache
     return jsonify({'message': 'Payment added successfully'}), 201
 
@@ -243,9 +271,11 @@ def submit_payment():
     try:
         db.session.add(new_payment)
         db.session.commit()
+        logging.info(f"Payment processed successfully")
         flash('Payment processed successfully!', 'success')
     except Exception as e:
         db.session.rollback()
+        logging.info(f'Error processing payment: {str(e)}')
         flash(f'Error processing payment: {str(e)}', 'error')
 
     return redirect(url_for('payment_form'))
@@ -259,6 +289,7 @@ def update_user(user_id):
     # Find the user in the database
     user = User.query.get(user_id)
     if not user:
+        logging.info(f"User update failed: {user_id} cant be found")
         return jsonify({"error": "User not found"}), 404
 
     # Update user fields
@@ -268,6 +299,8 @@ def update_user(user_id):
 
     # Commit changes to the database
     db.session.commit()
+
+    logging.info(f"User {user_id} was updated into the db")
 
     # Clear cache to reflect changes
     cache.delete('users')
@@ -291,6 +324,7 @@ def update_payment(payment_id):
     # Find the payment in the database
     payment = Payment.query.get(payment_id)
     if not payment:
+        logging.info(f"Payment update failed: {payment_id} is not found")
         return jsonify({"error": "Payment not found"}), 404
 
     # Update payment fields
@@ -298,6 +332,8 @@ def update_payment(payment_id):
 
     # Commit changes to the database
     db.session.commit()
+
+    logging.info(f"Payment {payment_id} is updeted Succesfully")
 
     # Clear cache to reflect changes
     cache.delete('payments')
@@ -319,12 +355,13 @@ def update_payment(payment_id):
 def soft_delete_user(user_id):
     user = User.query.get(user_id)
     if not user:
+        logging.warning(f"Soft delete failed: User {user_id} not found")
         return jsonify({"error": "User not found"}), 404
 
     user.is_deleted = True
     db.session.commit()
     cache.delete('users')
-
+    logging.warning(f"Soft delete User {user_id} is inactive")
     return jsonify({"message": "User soft deleted successfully"})
 
 # Hard delete a user
@@ -332,12 +369,13 @@ def soft_delete_user(user_id):
 def hard_delete_user(user_id):
     user = User.query.get(user_id)
     if not user:
+        logging.warning(f"Hard delete failed: User {user_id} not found")
         return jsonify({"error": "User not found"}), 404
 
     db.session.delete(user)
     db.session.commit()
     cache.delete('users')
-
+    logging.warning(f"Hard delete User {user_id} is delted from db")
     return jsonify({"message": "User hard deleted successfully"})
 
 # Soft delete a payment
@@ -345,11 +383,13 @@ def hard_delete_user(user_id):
 def soft_delete_payment(payment_id):
     payment = Payment.query.get(payment_id)
     if not payment:
+        logging.warning(f"Soft delete failed: Payment {payment_id} not found")
         return jsonify({"error": "Payment not found"}), 404
 
     payment.is_deleted = True
     db.session.commit()
     cache.delete('payments')
+    logging.info(f"Payment {payment_id} soft deleted successfully")
 
     return jsonify({"message": "Payment soft deleted successfully"})
 
@@ -358,15 +398,39 @@ def soft_delete_payment(payment_id):
 def hard_delete_payment(payment_id):
     payment = Payment.query.get(payment_id)
     if not payment:
+        logging.warning(f"Hard delete failed: Payment {payment_id} not found")
         return jsonify({"error": "Payment not found"}), 404
 
     db.session.delete(payment)
     db.session.commit()
     cache.delete('payments')
-
+    logging.info(f"Payment {payment_id} hard deleted successfully")
     return jsonify({"message": "Payment hard deleted successfully"})
 
 
+# Upload file route
+@app.route('/upload', methods=['POST', 'GET'])
+def upload_file_html():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part', 'error')
+            return redirect(request.url)
+
+        file = request.files['file']
+
+        if file.filename == '':
+            flash('No selected file', 'error')
+            return redirect(request.url)
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            flash('File successfully uploaded!', 'success')
+            return redirect(url_for('upload_file'))
+        else:
+            flash('Invalid file type', 'error')
+
+    return render_template('file_upload.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
